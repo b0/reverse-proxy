@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.ReverseProxy.Service.Management;
@@ -17,7 +18,7 @@ namespace Microsoft.ReverseProxy.Service.HealthProbe
         private readonly ILogger<HealthProbeWorker> _logger;
         private readonly IBackendManager _backendManager;
         private readonly IBackendProberFactory _backendProberFactory;
-        private readonly AsyncSemaphore _semaphore = new AsyncSemaphore(_maxProberNumber);
+        private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(_maxProberNumber);
         private readonly Dictionary<string, IBackendProber> _activeProbers = new Dictionary<string, IBackendProber>(StringComparer.Ordinal);
 
         public HealthProbeWorker(ILogger<HealthProbeWorker> logger, IBackendManager backendManager, IBackendProberFactory backendProberFactory)

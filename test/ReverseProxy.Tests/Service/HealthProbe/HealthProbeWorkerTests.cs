@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.ReverseProxy.Abstractions.Time;
@@ -47,7 +48,7 @@ namespace Microsoft.ReverseProxy.Service.HealthProbe
             // Set up prober. We do not want to let prober really perform any actions.
             // The behavior of prober should be tested in its own unit test, see "BackendProberTests.cs".
             _backendProber = new Mock<IBackendProber>();
-            _backendProber.Setup(p => p.Start(It.IsAny<AsyncSemaphore>()));
+            _backendProber.Setup(p => p.Start(It.IsAny<SemaphoreSlim>()));
             _backendProber.Setup(p => p.StopAsync());
             _backendProber.Setup(p => p.BackendId).Returns("service0");
             _backendProber.Setup(p => p.Config).Returns(_backendConfig);
@@ -73,7 +74,7 @@ namespace Microsoft.ReverseProxy.Service.HealthProbe
             await health.UpdateTrackedBackends();
 
             // There is no service, no prober should be created or started.
-            _backendProber.Verify(p => p.Start(It.IsAny<AsyncSemaphore>()), Times.Never());
+            _backendProber.Verify(p => p.Start(It.IsAny<SemaphoreSlim>()), Times.Never());
         }
 
         [Fact]
@@ -95,7 +96,7 @@ namespace Microsoft.ReverseProxy.Service.HealthProbe
             await health.UpdateTrackedBackends();
 
             // There is three services, three prober should be created and started.
-            _backendProber.Verify(p => p.Start(It.IsAny<AsyncSemaphore>()), Times.Exactly(3));
+            _backendProber.Verify(p => p.Start(It.IsAny<SemaphoreSlim>()), Times.Exactly(3));
         }
 
         [Fact]
@@ -128,7 +129,7 @@ namespace Microsoft.ReverseProxy.Service.HealthProbe
             await health.UpdateTrackedBackends();
 
             // Probing is disabled for this backend, no prober should be created or started.
-            _backendProber.Verify(p => p.Start(It.IsAny<AsyncSemaphore>()), Times.Never());
+            _backendProber.Verify(p => p.Start(It.IsAny<SemaphoreSlim>()), Times.Never());
         }
 
         [Fact]
@@ -149,7 +150,7 @@ namespace Microsoft.ReverseProxy.Service.HealthProbe
             await health.UpdateTrackedBackends();
 
             // There is one service but it does not have config, no prober should be created and started.
-            _backendProber.Verify(p => p.Start(It.IsAny<AsyncSemaphore>()), Times.Never());
+            _backendProber.Verify(p => p.Start(It.IsAny<SemaphoreSlim>()), Times.Never());
         }
 
         [Fact]
@@ -172,7 +173,7 @@ namespace Microsoft.ReverseProxy.Service.HealthProbe
 
             // There is one service and service does not changed, prober should be only created and started once
             // no matter how many time probing is conducted.
-            _backendProber.Verify(p => p.Start(It.IsAny<AsyncSemaphore>()), Times.Once);
+            _backendProber.Verify(p => p.Start(It.IsAny<SemaphoreSlim>()), Times.Once);
         }
 
         [Fact]
@@ -204,7 +205,7 @@ namespace Microsoft.ReverseProxy.Service.HealthProbe
 
             // After the config is updated, the program should discover this change, create a new prober,
             // stop and remove the previous prober. So two creation and one stop in total.
-            _backendProber.Verify(p => p.Start(It.IsAny<AsyncSemaphore>()), Times.Exactly(2));
+            _backendProber.Verify(p => p.Start(It.IsAny<SemaphoreSlim>()), Times.Exactly(2));
             _backendProber.Verify(p => p.StopAsync(), Times.Once);
         }
 
@@ -237,7 +238,7 @@ namespace Microsoft.ReverseProxy.Service.HealthProbe
 
             // After the config is updated, the program should discover this change,
             // stop and remove the previous prober. So one creation and one stop in total.
-            _backendProber.Verify(p => p.Start(It.IsAny<AsyncSemaphore>()), Times.Once);
+            _backendProber.Verify(p => p.Start(It.IsAny<SemaphoreSlim>()), Times.Once);
             _backendProber.Verify(p => p.StopAsync(), Times.Once);
         }
 
@@ -263,7 +264,7 @@ namespace Microsoft.ReverseProxy.Service.HealthProbe
 
             // After the backend is removed, the program should discover this removal,
             // stop and remove the prober for the removed service. So one creation and one stop in total.
-            _backendProber.Verify(p => p.Start(It.IsAny<AsyncSemaphore>()), Times.Once);
+            _backendProber.Verify(p => p.Start(It.IsAny<SemaphoreSlim>()), Times.Once);
             _backendProber.Verify(p => p.StopAsync(), Times.Once);
         }
 
@@ -287,7 +288,7 @@ namespace Microsoft.ReverseProxy.Service.HealthProbe
 
             // Stop probing. We should expect three start and three stop.
             await health.StopAsync();
-            _backendProber.Verify(p => p.Start(It.IsAny<AsyncSemaphore>()), Times.Exactly(3));
+            _backendProber.Verify(p => p.Start(It.IsAny<SemaphoreSlim>()), Times.Exactly(3));
             _backendProber.Verify(p => p.StopAsync(), Times.Exactly(3));
         }
 
